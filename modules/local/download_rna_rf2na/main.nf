@@ -2,11 +2,6 @@ process DOWNLOAD_RNA_DATABASES {
     tag "Download and process RNA databases"
     label 'process_medium'
 
-    // Exit if running this module with -profile conda / -profile mamba
-    if (workflow.profile.tokenize(',').intersect(['conda', 'mamba']).size() >= 1) {
-        error("DOWNLOAD_RNA_DATABASES module does not support Conda. Please use Docker / Singularity / Podman instead.")
-    }
-
     container "quay.io/patribota/proteinfold_rosettafold2na:dev"
 
     input:
@@ -24,6 +19,11 @@ process DOWNLOAD_RNA_DATABASES {
     task.ext.when == null || task.ext.when
 
     script:
+    // Exit if running this module with -profile conda / -profile mamba
+    if (workflow.profile.tokenize(',').intersect(['conda', 'mamba']).size() >= 1) {
+        error("DOWNLOAD_RNA_DATABASES module does not support Conda. Please use Docker / Singularity / Podman instead.")
+    }
+
     def args = task.ext.args ?: ''
     """
     mkdir -p RNA
@@ -40,10 +40,10 @@ process DOWNLOAD_RNA_DATABASES {
     wget -O id_mapping.tsv.gz ${rnacentral_id_mapping_link}
     wget -O rfam_annotations.tsv.gz ${rnacentral_rfam_annotations_link}
     wget -O rnacentral_sequences.fasta.gz ${rnacentral_sequences_link}
-    
+
     # Use the reprocess_rnac.pl script from the RoseTTAFold2NA repository
     /app/RoseTTAFold2NA/input_prep/reprocess_rnac.pl id_mapping.tsv.gz rfam_annotations.tsv.gz
-    
+
     gunzip -c rnacentral_sequences.fasta.gz | makeblastdb -in - -dbtype nucl -parse_seqids -out rnacentral.fasta -title "RNACentral"
 
     # Download nt database
